@@ -89,8 +89,8 @@ class CoralClient:
     # ------------------------------------------------------------------
     # 1. Initialization  (called from main.py lifespan)
     # ------------------------------------------------------------------
-async def initialize(self) -> None:
-    """
+    async def initialize(self) -> None:
+        """
         Verify Coral is installed, register all sources, load schema.
         Falls back gracefully — never raises so the server always starts.
         """
@@ -285,5 +285,99 @@ async def initialize(self) -> None:
         return result
     # ------------------------------------------------------------------
     # Coral CLI subprocess helpers
-    # --------------------------------------------------...
-[truncated]
+    # ------------------------------------------------------------------
+
+    async def _run_coral_cmd(self, args: list[str]) -> str:
+        """Run a Coral CLI command and return stdout."""
+        cmd = [self._coral_bin] + args
+        try:
+            proc = await asyncio.wait_for(
+                asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                ),
+                timeout=CORAL_QUERY_TIMEOUT,
+            )
+            stdout, stderr = await proc.communicate()
+            if proc.returncode != 0:
+                raise RuntimeError(f"Coral CLI error: {stderr.decode()[:200]}")
+            return stdout.decode()
+        except asyncio.TimeoutError:
+            raise asyncio.TimeoutError(f"Coral command timed out: {' '.join(args[:3])}")
+
+    async def _run_coral_query(
+        self,
+        sql: str,
+        params: Optional[dict[str, Any]] = None,
+    ) -> str:
+        """Execute a SQL query via the Coral CLI and return raw JSON output."""
+        args = ["query", "--output", "json", "--sql", sql]
+        if params:
+            for k, v in params.items():
+                if v is not None:
+                    args += ["--param", f"{k}={v}"]
+        return await self._run_coral_cmd(args)
+
+    def _parse_rows(self, raw_json: str) -> list[dict[str, Any]]:
+        """Parse Coral CLI JSON output into a list of row dicts."""
+        try:
+            data = json.loads(raw_json)
+            # Coral CLI returns {"rows": [...]} or just [...]
+            if isinstance(data, list):
+                return data
+            if isinstance(data, dict):
+                return data.get("rows", data.get("data", []))
+            return []
+        except json.JSONDecodeError as exc:
+            logger.warning("_parse_rows: JSON decode error — %s", exc)
+            return []
+
+    async def _mock_query_result(self, sql: str) -> "QueryResult":
+        """Return mock data for demo/offline mode."""
+        import random
+        sql_lower = sql.lower()
+
+        if "resonance" in sql_lower or "score" in sql_lower:
+            rows = [
+                {"video_id": f"vid_{i:03d}", "title": f"Video {i}", "views": random.randint(5000, 80000),
+                 "watch_pct": round(random.uniform(35, 72), 1), "likes": random.randint(100, 3000),
+                 "comments": random.randint(10, 400), "discord_msgs": random.randint(0, 120),
+                 "resonance_score": round(random.uniform(30, 90), 1), "topic": random.choice(["AI", "Python", "Tutorial", "DevOps"]),
+                 "published_at": "2025-05-01"}
+                for i in range(1, 16)
+            ]
+        elif "trend" in sql_lower:
+            rows = [
+                {"period": f"2025-W{20+i}", "topic": topic, "video_count": random.randint(1, 5),
+                 "avg_resonance": round(random.uniform(45, 85), 1), "trend_direction": random.choice(["up", "up", "flat", "down"])}
+                for i in range(6) for topic in ["AI", "Python", "Tutorial"]
+            ]
+        elif "underperform" in sql_lower:
+            rows = [
+                {"video_id": f"vid_{i:03d}", "title": f"Underperformer {i}", "views": random.randint(8000, 30000),
+                 "watch_pct": round(random.uniform(18, 38), 1), "resonance_score": round(random.uniform(15, 40), 1),
+                 "diagnosis": random.choice(["low_retention", "poor_hook", "weak_cta", "no_community_buzz"]),
+                 "discord_msgs": random.randint(0, 8)}
+                for i in range(1, 8)
+            ]
+        else:
+            rows = [
+                {"video_id": f"vid_{i:03d}", "title": f"Video {i}", "views": random.randint(3000, 50000),
+                 "engagement_score": round(random.uniform(0.02, 0.12), 4)}
+                for i in range(1, 10)
+            ]
+
+        return QueryResult(
+            success   = True,
+            data      = rows,
+            row_count = len(rows),
+            sql       = sql,
+            source    = "mock",
+        )
+
+
+# ---------------------------------------------------------------------------
+# Module singleton — import this everywhere
+# ---------------------------------------------------------------------------
+coral_client = CoralClient()

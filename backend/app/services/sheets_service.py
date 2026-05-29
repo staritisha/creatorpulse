@@ -129,7 +129,7 @@ class SheetsContext:
         if self.top_notes:
             lines.append("\n**Creator Notes (recent):**")
             for note in self.top_notes[:5]:
-                lines.append(f"- "{note}"")
+                lines.append(f'- "{note}"')
 
         return "\n".join(lines)
 

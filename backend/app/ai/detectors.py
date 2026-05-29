@@ -479,7 +479,8 @@ def detect_intent(
     Returns (intent_key, confidence 0–1). (Feature 1)
     """
     # Lazy import to avoid circular dependency with prompts.py
-    from ai.prompts import classify_intent, (
+    from ai.prompts import (
+        classify_intent,
         INTENT_UNDERPERFORMANCE, INTENT_RECOMMENDATION, INTENT_AUDIENCE_HEALTH,
         INTENT_GROWTH_FORECAST, INTENT_RESONANCE, INTENT_GROWTH, INTENT_GENERAL_CHAT,
         INTENT_KEYWORDS,

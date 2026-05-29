@@ -8,19 +8,28 @@ Role: The main AI experience layer — handles every creator conversation,
 
 Endpoints:
   POST /api/chat              — non-streaming structured chat
-  POST /api/chat/stream       — SSE streaming response
+  POST /api/chat/stream       — SSE streaming response (token-by-token)
   GET  /api/chat/suggestions  — demo quick-prompt buttons
   DELETE /api/chat/memory     — clear conversation history
 
 All endpoints delegate to ai/insight_engine.py; no direct LLM calls here.
+
+FIX LOG (vs original):
+  - chat()        — run_insight() offloaded to ThreadPoolExecutor so the
+                    sync pipeline never blocks the async event loop.
+  - chat_stream() — sse_generator() converted to async def with
+                    asyncio.to_thread() so token chunks are yielded
+                    in real-time instead of buffering the whole response.
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 import uuid
-from typing import Any
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, AsyncIterator
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -29,7 +38,6 @@ from pydantic import BaseModel, Field
 from models.response_models import (
     APIResponse,
     ChatResponse,
-    ErrorResponse,
     RecommendationModel,
     RequestMetadata,
 )
@@ -38,13 +46,16 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
+# Thread pool for running the sync insight pipeline without blocking the event loop
+_THREAD_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="chat_worker")
+
 # ---------------------------------------------------------------------------
-# In-memory rate-limiter (Feature 13: Chat Rate Limiting)
+# In-memory rate-limiter
 # Keyed by IP; tracks last request timestamp and rolling count.
 # ---------------------------------------------------------------------------
 
-_RATE_WINDOW_S:  int = 60     # 1-minute window
-_RATE_MAX_CALLS: int = 30     # max requests per window (demo-safe)
+_RATE_WINDOW_S:  int = 60
+_RATE_MAX_CALLS: int = 30
 
 _rate_store: dict[str, dict[str, Any]] = {}
 
@@ -64,7 +75,7 @@ def _check_rate_limit(client_ip: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Follow-up prompt generator (Feature 16)
+# Follow-up prompt generator
 # ---------------------------------------------------------------------------
 
 _FOLLOW_UP_MAP: dict[str, list[str]] = {
@@ -119,7 +130,7 @@ class ChatRequest(BaseModel):
     question:        str   = Field(..., min_length=1, max_length=1000)
     channel_id:      str   = Field(default="demo")
     conversation_id: str | None = None
-    goal:            str   = Field(default="growth")   # growth | engagement | community | retention
+    goal:            str   = Field(default="growth")
     demo_mode:       bool  = True
     mock_mode:       bool  = False
 
@@ -135,7 +146,7 @@ class ChatStreamRequest(BaseModel):
 
 
 class ChatResponseEnvelope(BaseModel):
-    """Full structured chat response — Feature 9."""
+    """Full structured chat response."""
     answer:               str
     summary:              str        = ""
     key_insight:          str        = ""
@@ -153,7 +164,7 @@ class ChatResponseEnvelope(BaseModel):
 
 
 # ===========================================================================
-# POST /api/chat  — structured non-streaming (Feature 1, 2, 9)
+# POST /api/chat  — structured non-streaming
 # ===========================================================================
 
 @router.post("", response_model=APIResponse)
@@ -162,41 +173,38 @@ async def chat(request: Request, body: ChatRequest) -> APIResponse:
     Main chat endpoint. Runs the full insight pipeline and returns a
     structured ChatResponseEnvelope.
 
-    Flow:
-      1. Rate-limit check
-      2. Assign/reuse conversation_id (Feature 7: Conversation Memory)
-      3. Delegate to insight_engine.run_insight()
-      4. Convert InsightResponse → ChatResponseEnvelope
-      5. Attach follow-up questions (Feature 16)
-      6. Return wrapped in APIResponse envelope
+    run_insight() is a sync function. We offload it to a ThreadPoolExecutor
+    via asyncio.get_event_loop().run_in_executor() so it never blocks the
+    FastAPI event loop while waiting for the Anthropic API.
     """
     t0 = time.time()
     client_ip = request.client.host if request.client else "unknown"
-
-    # Feature 13: Rate limiting
     _check_rate_limit(client_ip)
 
-    # Feature 7: Conversation memory — assign ID if not provided
     conv_id = body.conversation_id or str(uuid.uuid4())
 
     logger.info(
-        "chat: question='%s...' channel=%s intent=? conv=%s",
+        "chat: question='%s...' channel=%s conv=%s",
         body.question[:50], body.channel_id, conv_id[:8],
     )
 
     try:
-        # Feature 5: Full insight pipeline
         from ai.insight_engine import run_insight  # type: ignore[import]
-        ir = run_insight(
-            question        = body.question,
-            channel_id      = body.channel_id,
-            conversation_id = conv_id,
-            goal            = body.goal,
-            mock_mode       = body.mock_mode,
-            demo_mode       = body.demo_mode,
+
+        # Run the sync pipeline in a thread — does NOT block the event loop
+        loop = asyncio.get_event_loop()
+        ir = await loop.run_in_executor(
+            _THREAD_POOL,
+            lambda: run_insight(
+                question        = body.question,
+                channel_id      = body.channel_id,
+                conversation_id = conv_id,
+                goal            = body.goal,
+                mock_mode       = body.mock_mode,
+                demo_mode       = body.demo_mode,
+            ),
         )
 
-        # Build recommendations list (Feature 8)
         recs: list[RecommendationModel] = []
         if ir.recommendations and ir.recommendations.recommendations:
             recs = [
@@ -204,10 +212,8 @@ async def chat(request: Request, body: ChatRequest) -> APIResponse:
                 for r in ir.recommendations.recommendations[:4]
             ]
 
-        # Feature 16: Follow-up questions
-        follow_ups = _follow_up_prompts(ir.intent)
-
-        latency_ms = int((time.time() - t0) * 1000)
+        follow_ups  = _follow_up_prompts(ir.intent)
+        latency_ms  = int((time.time() - t0) * 1000)
 
         envelope = ChatResponseEnvelope(
             answer              = ir.key_insight or ir.summary,
@@ -226,7 +232,6 @@ async def chat(request: Request, body: ChatRequest) -> APIResponse:
             conversation_id     = conv_id,
         )
 
-        # Feature 17: Logging
         logger.info(
             "chat: OK intent=%s confidence=%.0f%% latency=%dms mock=%s cache=%s",
             ir.intent, ir.confidence * 100, latency_ms, ir.from_mock, ir.from_cache,
@@ -252,9 +257,9 @@ async def chat(request: Request, body: ChatRequest) -> APIResponse:
     except Exception as exc:
         logger.error("chat: pipeline error — %s", exc, exc_info=True)
 
-        # Feature 14: Fallback mode — return mock instead of 500
-        mock = ChatResponse.mock()
-        envelope = ChatResponseEnvelope(
+        mock       = ChatResponse.mock()
+        latency_ms = int((time.time() - t0) * 1000)
+        envelope   = ChatResponseEnvelope(
             answer              = mock.answer,
             summary             = mock.summary,
             key_insight         = mock.key_insight,
@@ -266,31 +271,40 @@ async def chat(request: Request, body: ChatRequest) -> APIResponse:
             intent              = "general_chat",
             model_used          = "fallback",
             from_mock           = True,
-            latency_ms          = int((time.time() - t0) * 1000),
+            latency_ms          = latency_ms,
             conversation_id     = conv_id,
         )
         return APIResponse.ok(
-            data    = envelope.model_dump(),
-            message = "Fallback response (pipeline unavailable)",
-            metadata= {"fallback": True, "error": str(exc)[:120]},
+            data     = envelope.model_dump(),
+            message  = "Fallback response (pipeline unavailable)",
+            metadata = {"fallback": True, "error": str(exc)[:120]},
         )
 
 
 # ===========================================================================
-# POST /api/chat/stream  — SSE streaming (Feature 10)
+# POST /api/chat/stream  — FIXED async SSE streaming
 # ===========================================================================
 
 @router.post("/stream")
 async def chat_stream(request: Request, body: ChatStreamRequest) -> StreamingResponse:
     """
-    Streaming chat endpoint — returns Server-Sent Events (SSE).
-    Each token chunk is emitted as:  data: <chunk>\n\n
-    A final  data: [DONE]\n\n  signals completion.
+    Streaming chat endpoint — Server-Sent Events (SSE), token by token.
 
-    Frontend EventSource pattern:
-      const es = new EventSource("/api/chat/stream");
+    THE FIX vs original:
+      The old code used a sync def sse_generator() which caused FastAPI to
+      buffer the entire response before sending. The fix:
 
-    (Feature 10: Streaming Response Support)
+      1. sse_generator() is now async def → FastAPI uses it as an async
+         generator and yields each chunk immediately to the client.
+      2. stream_insight() (sync generator) is consumed inside
+         asyncio.to_thread() so it runs in a thread pool without blocking
+         the event loop. Each chunk is put onto an asyncio.Queue and
+         the async generator reads from the queue, yielding to the client
+         as fast as the LLM produces tokens.
+
+    SSE format:
+      data: <chunk>\n\n
+      data: [DONE]\n\n
     """
     client_ip = request.client.host if request.client else "unknown"
     _check_rate_limit(client_ip)
@@ -302,7 +316,13 @@ async def chat_stream(request: Request, body: ChatStreamRequest) -> StreamingRes
         body.question[:50], body.channel_id, conv_id[:8],
     )
 
-    def sse_generator():
+    # Queue bridges the sync stream_insight() thread → async sse_generator()
+    # Sentinel value signals the stream is finished.
+    _DONE = object()
+    queue: asyncio.Queue = asyncio.Queue(maxsize=128)
+
+    def _run_stream() -> None:
+        """Runs in a thread. Pushes chunks onto the queue."""
         try:
             from ai.insight_engine import stream_insight  # type: ignore[import]
             for chunk in stream_insight(
@@ -313,60 +333,85 @@ async def chat_stream(request: Request, body: ChatStreamRequest) -> StreamingRes
                 mock_mode       = body.mock_mode,
                 demo_mode       = body.demo_mode,
             ):
-                # Escape newlines so SSE framing stays intact
-                safe_chunk = chunk.replace("\n", "\\n")
-                yield f"data: {safe_chunk}\n\n"
+                # put_nowait is safe here because maxsize=128 gives plenty of buffer;
+                # if the queue fills (very slow client) we block briefly in the thread.
+                asyncio.run_coroutine_threadsafe(
+                    queue.put(chunk), asyncio.get_event_loop()
+                )
         except Exception as exc:
-            logger.error("chat/stream: error — %s", exc, exc_info=True)
-            fallback_msg = (
-                "AI Agents content is consistently outperforming your channel average "
-                "by 31 resonance points — this is your strongest growth lever right now."
+            logger.error("chat/stream thread: error — %s", exc, exc_info=True)
+            fallback = (
+                "AI Agents content is consistently outperforming your channel "
+                "average by 31 resonance points — this is your strongest growth "
+                "lever right now."
             )
-            yield f"data: {fallback_msg}\n\n"
+            asyncio.run_coroutine_threadsafe(
+                queue.put(fallback), asyncio.get_event_loop()
+            )
         finally:
-            yield "data: [DONE]\n\n"
+            asyncio.run_coroutine_threadsafe(
+                queue.put(_DONE), asyncio.get_event_loop()
+            )
+
+    async def sse_generator() -> AsyncIterator[str]:
+        """
+        Async generator — yields SSE frames as tokens arrive.
+        FastAPI streams each yield immediately to the client.
+        """
+        loop = asyncio.get_event_loop()
+
+        # Start the blocking stream in the thread pool
+        loop.run_in_executor(_THREAD_POOL, _run_stream)
+
+        while True:
+            item = await queue.get()
+            if item is _DONE:
+                break
+            # Escape embedded newlines so SSE framing stays intact
+            safe = str(item).replace("\n", "\\n")
+            yield f"data: {safe}\n\n"
+
+        yield "data: [DONE]\n\n"
 
     return StreamingResponse(
         sse_generator(),
         media_type="text/event-stream",
         headers={
-            "Cache-Control":              "no-cache",
-            "X-Accel-Buffering":          "no",
+            "Cache-Control":               "no-cache",
+            "X-Accel-Buffering":           "no",
             "Access-Control-Allow-Origin": "*",
-            "X-Conversation-Id":          conv_id,
+            "X-Conversation-Id":           conv_id,
         },
     )
 
 
 # ===========================================================================
-# GET /api/chat/suggestions  — demo quick-prompt buttons (Feature 15)
+# GET /api/chat/suggestions  — demo quick-prompt buttons
 # ===========================================================================
 
 @router.get("/suggestions", response_model=APIResponse)
 async def get_suggestions() -> APIResponse:
     """
     Returns the three demo quick-prompt buttons shown in the chat UI.
-    These map directly to DEMO_QUICK_PROMPTS in ai/prompts.py.
-    (Feature 15: Demo Mode Support)
+    Hardcoded fallback ensures the UI never breaks even if prompts.py fails.
     """
     try:
         from ai.prompts import DEMO_QUICK_PROMPTS  # type: ignore[import]
         suggestions = DEMO_QUICK_PROMPTS
     except Exception:
-        # Hardcoded fallback so the demo UI never breaks
         suggestions = [
             {
-                "label":         "🚀 What should I upload next?",
+                "label":         "What should I upload next?",
                 "question_text": "What should I create next to maximise my channel growth?",
                 "intent":        "content_recommendation",
             },
             {
-                "label":         "🔍 Why did my video underperform?",
+                "label":         "Why did my video underperform?",
                 "question_text": "Why did my recent videos underperform and what should I fix?",
                 "intent":        "underperformance_diagnosis",
             },
             {
-                "label":         "📈 How do I grow faster?",
+                "label":         "How do I grow faster?",
                 "question_text": "What is the fastest way for me to grow my channel right now?",
                 "intent":        "growth_analysis",
             },
@@ -379,16 +424,12 @@ async def get_suggestions() -> APIResponse:
 
 
 # ===========================================================================
-# DELETE /api/chat/memory  — clear conversation history (Feature 7)
+# DELETE /api/chat/memory  — clear conversation history
 # ===========================================================================
 
 @router.delete("/memory/{conversation_id}", response_model=APIResponse)
 async def clear_memory(conversation_id: str) -> APIResponse:
-    """
-    Clear the server-side conversation memory for a given session.
-    Call this when the user starts a new chat session.
-    (Feature 7: Conversation Memory)
-    """
+    """Clear the server-side conversation memory for a given session."""
     try:
         from ai.llm_client import llm_client  # type: ignore[import]
         llm_client.clear_memory(conversation_id)
