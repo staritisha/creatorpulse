@@ -1,0 +1,177 @@
+{
+  "generated_at": "2026-05-29T00:00:00Z",
+  "channel_id": "demo",
+  "channel_avg_resonance": 67.4,
+  "top_topic": "AI Agents",
+  "data_points": 9,
+  "top_insights": [
+    {
+      "type": "viral_signal",
+      "title": "🔥 Breakout opportunity: LangGraph tutorial",
+      "summary": "LangGraph tutorial triggered a 4.1× Discord spike with 91 resonance",
+      "key_insight": "Your LangGraph Deep Dive drove 4.1× more Discord discussion than your channel baseline with 91 resonance and 66% retention — both above breakout thresholds. Follow-up content within 72 hours captures peak algorithmic momentum.",
+      "signals": ["Discord spike: 4.1×", "Resonance: 91/100", "Retention: 66%"],
+      "recommendation": "Publish a follow-up LangGraph video this week and announce it in Discord today",
+      "confidence": 91.0,
+      "confidence_label": "high",
+      "from_mock": true
+    },
+    {
+      "type": "top_opportunity",
+      "title": "AI Agents is your #1 growth lever",
+      "summary": "AI Agents averages 87 resonance — 31 pts above your channel average",
+      "key_insight": "AI Agent tutorials generate 3.2× more Discord messages than career content and maintain 68% average retention. This is your highest-signal content category and your fastest path to channel growth.",
+      "signals": ["AI Agents resonance: 87/100", "Channel avg: 56/100", "Discord: 3.2× spike ratio"],
+      "recommendation": "Publish 2 AI Agent tutorials in the next 3 weeks",
+      "confidence": 88.0,
+      "confidence_label": "high",
+      "from_mock": true
+    },
+    {
+      "type": "underperformance",
+      "title": "Career Q&A #12: false popularity detected",
+      "summary": "180k views but only 22% retention and 3 Discord messages",
+      "key_insight": "'Career Q&A #12' attracted high clicks but viewers left quickly — a title-content mismatch. The thumbnail promised fast answers but the intro was too slow to deliver.",
+      "signals": ["Views: 180k", "Retention: 22%", "Discord msgs: 3", "Diagnosis: ctr_retention_mismatch"],
+      "recommendation": "Deliver the core answer within the first 45 seconds",
+      "confidence": 82.0,
+      "confidence_label": "high",
+      "from_mock": true
+    },
+    {
+      "type": "audience_health",
+      "title": "Community loyalty is accelerating",
+      "summary": "Discord activity up 23% week-over-week, loyalty index at 68",
+      "key_insight": "Your Discord community is increasingly engaged with technical content. Loyal viewers who discuss content in Discord have 2.8× higher return rate than passive viewers.",
+      "signals": ["Discord msgs: +23% WoW", "Loyalty index: 68/100", "Spike events: 2 this period"],
+      "recommendation": "Pin a discussion thread in Discord after each upload to sustain the momentum",
+      "confidence": 79.0,
+      "confidence_label": "high",
+      "from_mock": true
+    }
+  ],
+  "risks": [
+    {
+      "risk_type": "topic_decay",
+      "label": "Topic Decay",
+      "severity": "high",
+      "reason": "Career Advice resonance delta: -6.2 pts this period",
+      "mitigation": "Angle Career Advice content toward your AI niche or reduce upload frequency",
+      "confidence": 78.0
+    },
+    {
+      "risk_type": "upload_consistency",
+      "label": "Upload Consistency",
+      "severity": "medium",
+      "reason": "Upload gaps detected in 1 recent period",
+      "mitigation": "Commit to 1 video/week every Tuesday for 4 weeks",
+      "confidence": 65.0
+    }
+  ],
+  "opportunities": [
+    {
+      "opportunity_type": "viral_window",
+      "label": "Viral Window",
+      "impact": "high",
+      "signals": ["Discord spike: 4.1× baseline", "Resonance: 91/100", "Action window: 72h"],
+      "action": "Publish a follow-up LangGraph video immediately",
+      "topic": "AI Agents",
+      "time_sensitive": true,
+      "window_hours": 72,
+      "confidence": 89.0
+    },
+    {
+      "opportunity_type": "topic_growth",
+      "label": "Topic Growth",
+      "impact": "high",
+      "signals": ["Resonance delta: +8.5 pts", "Avg resonance: 87/100"],
+      "action": "Increase AI Agents upload frequency over the next 4 weeks",
+      "topic": "AI Agents",
+      "time_sensitive": false,
+      "confidence": 85.0
+    },
+    {
+      "opportunity_type": "cross_platform_amplification",
+      "label": "Cross-Platform Amplification",
+      "impact": "medium",
+      "signals": ["Discord loyalty index: 68", "Avg spike ratio: 2.4×", "Top sentiment: positive"],
+      "action": "Create a Discord-exclusive early-access clip for your next AI Agents video",
+      "topic": "Community",
+      "time_sensitive": false,
+      "confidence": 71.0
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "category": "content_strategy",
+      "title": "Publish LangGraph follow-up within 72h",
+      "rationale": "Peak algorithmic momentum window is open. Discord is still actively discussing the topic.",
+      "expected_impact": "Estimated 40–60% view uplift vs your channel average based on spike trajectory",
+      "action_items": [
+        "Record a 10–15 min deep-dive on LangGraph state management",
+        "Post a teaser clip in Discord #announcements today",
+        "Use the word 'Advanced' or 'Part 2' in the title to capture search intent"
+      ],
+      "confidence": 91.0
+    },
+    {
+      "priority": "HIGH",
+      "category": "upload_cadence",
+      "title": "Double AI Agents content this month",
+      "rationale": "AI Agents is 31 pts above channel average resonance. Each video in this topic outperforms your baseline by 2–3×.",
+      "expected_impact": "Projected +18% subscriber growth over 30 days at 2 uploads/week",
+      "action_items": [
+        "Plan a 4-video AI Agents mini-series (agent frameworks, tooling, evaluation, deployment)",
+        "Batch-record all 4 in a single session to reduce friction",
+        "Schedule Tuesday releases — your top-performing upload day"
+      ],
+      "confidence": 88.0
+    },
+    {
+      "priority": "MEDIUM",
+      "category": "content_fix",
+      "title": "Re-edit Career Q&A format — front-load answers",
+      "rationale": "22% retention signals viewers expected a faster answer format. The category still has loyal search demand.",
+      "expected_impact": "Estimated retention improvement to 45–55% with answer-first structure",
+      "action_items": [
+        "Start with the direct answer in the first 30 seconds",
+        "Add a chapter marker at 0:00 'Quick Answer' and 1:30 'Full Breakdown'",
+        "A/B test a new thumbnail with the answer text overlaid"
+      ],
+      "confidence": 75.0
+    }
+  ],
+  "audience_intelligence": {
+    "health_score": 73,
+    "health_label": "healthy",
+    "community_loyalty_index": 68,
+    "avg_retention_pct": 51.0,
+    "overall_sentiment": "positive",
+    "flag_passive_audience": false,
+    "flag_burnout": false,
+    "strong_signals": ["community_activity", "sentiment"],
+    "weak_signals": ["upload_consistency"],
+    "top_loyal_topics": ["AI Agents", "Backend"],
+    "top_disengaged_topics": ["Career Advice"]
+  },
+  "growth_forecast": {
+    "momentum_label": "accelerating",
+    "growth_pct_7d": 6.8,
+    "best_topic": "AI Agents",
+    "declining_topic": "Career Advice",
+    "best_upload_day": "Tuesday",
+    "videos_per_week_avg": 1.2,
+    "upload_gap_weeks": 0,
+    "forecast_7d": [
+      {"day": 1, "predicted_resonance": 72.5, "lower": 68.0, "upper": 77.0},
+      {"day": 2, "predicted_resonance": 73.1, "lower": 68.5, "upper": 77.7},
+      {"day": 3, "predicted_resonance": 73.8, "lower": 69.0, "upper": 78.6},
+      {"day": 4, "predicted_resonance": 74.4, "lower": 69.4, "upper": 79.4},
+      {"day": 5, "predicted_resonance": 75.0, "lower": 70.0, "upper": 80.0},
+      {"day": 6, "predicted_resonance": 75.5, "lower": 70.3, "upper": 80.7},
+      {"day": 7, "predicted_resonance": 76.2, "lower": 71.0, "upper": 81.4}
+    ],
+    "upload_simulation": {"recommended": "1–2 uploads/week"}
+  }
+}

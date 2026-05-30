@@ -94,6 +94,15 @@ class Settings:
     demo_mode: bool = _bool("DEMO_MODE", False)
 
     # ------------------------------------------------------------------
+    # 4b. Local sources mode
+    # ------------------------------------------------------------------
+    # When True (or when live API keys are absent): Coral is wired to
+    # local CSV files generated from data/mock/*.json instead of live
+    # HTTP sources.  This lets real Coral SQL JOINs run without API keys.
+    # Auto-enabled when any live key is missing; set explicitly via env var.
+    use_local_sources: bool = _bool("USE_LOCAL_SOURCES", True)
+
+    # ------------------------------------------------------------------
     # 5. Claude / Anthropic API configuration
     # ------------------------------------------------------------------
     # Required unless mock/demo mode is active.

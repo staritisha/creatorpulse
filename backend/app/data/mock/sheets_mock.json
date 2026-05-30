@@ -1,0 +1,36 @@
+{
+  "sheet_id": "demo_sheet_001",
+  "sheet_name": "Creator Engagement Tracker",
+  "last_updated": "2025-05-29T08:00:00Z",
+  "rows": [
+    {"date": "2025-05-20", "video_id": "vid_001", "source": "youtube_community", "cta_clicks": 312, "link_clicks": 189, "email_signups": 47, "merch_clicks": 28, "affiliate_clicks": 94, "poll_responses": 201, "notes": "Spike from algorithm push"},
+    {"date": "2025-05-19", "video_id": "vid_001", "source": "youtube_community", "cta_clicks": 148, "link_clicks": 92, "email_signups": 23, "merch_clicks": 14, "affiliate_clicks": 48, "poll_responses": 89, "notes": ""},
+    {"date": "2025-05-18", "video_id": "vid_005", "source": "youtube_community", "cta_clicks": 271, "link_clicks": 163, "email_signups": 38, "merch_clicks": 19, "affiliate_clicks": 81, "poll_responses": 155, "notes": ""},
+    {"date": "2025-05-17", "video_id": "vid_009", "source": "youtube_community", "cta_clicks": 334, "link_clicks": 198, "email_signups": 52, "merch_clicks": 33, "affiliate_clicks": 108, "poll_responses": 218, "notes": "Top video this week"},
+    {"date": "2025-05-16", "video_id": "vid_014", "source": "youtube_community", "cta_clicks": 298, "link_clicks": 181, "email_signups": 44, "merch_clicks": 26, "affiliate_clicks": 97, "poll_responses": 193, "notes": ""},
+    {"date": "2025-05-15", "video_id": "vid_003", "source": "youtube_community", "cta_clicks": 247, "link_clicks": 149, "email_signups": 31, "merch_clicks": 18, "affiliate_clicks": 76, "poll_responses": 138, "notes": ""},
+    {"date": "2025-05-14", "video_id": "vid_007", "source": "youtube_community", "cta_clicks": 256, "link_clicks": 154, "email_signups": 34, "merch_clicks": 21, "affiliate_clicks": 84, "poll_responses": 151, "notes": ""},
+    {"date": "2025-05-13", "video_id": "vid_002", "source": "youtube_community", "cta_clicks": 214, "link_clicks": 129, "email_signups": 27, "merch_clicks": 15, "affiliate_clicks": 68, "poll_responses": 122, "notes": ""},
+    {"date": "2025-05-12", "video_id": "vid_012", "source": "youtube_community", "cta_clicks": 289, "link_clicks": 174, "email_signups": 41, "merch_clicks": 24, "affiliate_clicks": 92, "poll_responses": 177, "notes": ""},
+    {"date": "2025-05-11", "video_id": "vid_011", "source": "youtube_community", "cta_clicks": 198, "link_clicks": 119, "email_signups": 22, "merch_clicks": 13, "affiliate_clicks": 59, "poll_responses": 108, "notes": ""},
+    {"date": "2025-05-10", "video_id": "vid_008", "source": "youtube_community", "cta_clicks": 162, "link_clicks": 97, "email_signups": 18, "merch_clicks": 11, "affiliate_clicks": 49, "poll_responses": 87, "notes": ""},
+    {"date": "2025-05-09", "video_id": "vid_004", "source": "youtube_community", "cta_clicks": 141, "link_clicks": 84, "email_signups": 14, "merch_clicks": 8, "affiliate_clicks": 41, "poll_responses": 72, "notes": ""},
+    {"date": "2025-05-08", "video_id": "vid_015", "source": "youtube_community", "cta_clicks": 138, "link_clicks": 82, "email_signups": 13, "merch_clicks": 7, "affiliate_clicks": 39, "poll_responses": 68, "notes": ""},
+    {"date": "2025-05-07", "video_id": "vid_006", "source": "youtube_community", "cta_clicks": 118, "link_clicks": 71, "email_signups": 11, "merch_clicks": 6, "affiliate_clicks": 33, "poll_responses": 58, "notes": "Low engagement — pacing issues noted"},
+    {"date": "2025-05-06", "video_id": "vid_010", "source": "youtube_community", "cta_clicks": 104, "link_clicks": 62, "email_signups": 9, "merch_clicks": 5, "affiliate_clicks": 28, "poll_responses": 49, "notes": "Underperformer"},
+    {"date": "2025-05-05", "video_id": "vid_013", "source": "youtube_community", "cta_clicks": 97, "link_clicks": 58, "email_signups": 8, "merch_clicks": 4, "affiliate_clicks": 24, "poll_responses": 43, "notes": "Low relevance to audience"},
+    {"date": "2025-05-04", "video_id": "vid_009", "source": "newsletter", "cta_clicks": 188, "link_clicks": 112, "email_signups": 28, "merch_clicks": 17, "affiliate_clicks": 58, "poll_responses": 94, "notes": "Newsletter send day"},
+    {"date": "2025-05-03", "video_id": "vid_005", "source": "newsletter", "cta_clicks": 164, "link_clicks": 98, "email_signups": 22, "merch_clicks": 13, "affiliate_clicks": 49, "poll_responses": 81, "notes": ""},
+    {"date": "2025-05-02", "video_id": "vid_001", "source": "newsletter", "cta_clicks": 179, "link_clicks": 107, "email_signups": 26, "merch_clicks": 16, "affiliate_clicks": 55, "poll_responses": 92, "notes": ""},
+    {"date": "2025-05-01", "video_id": "vid_014", "source": "newsletter", "cta_clicks": 171, "link_clicks": 103, "email_signups": 24, "merch_clicks": 14, "affiliate_clicks": 52, "poll_responses": 87, "notes": ""}
+  ],
+  "summary": {
+    "period": "last_30_days",
+    "total_cta_clicks": 4072,
+    "total_email_signups": 656,
+    "total_affiliate_clicks": 1383,
+    "avg_cta_per_video": 203.6,
+    "best_cta_video": "vid_009",
+    "worst_cta_video": "vid_013"
+  }
+}

@@ -293,3 +293,164 @@ def get_schema() -> dict[str, Any]:
     except Exception as exc:
         logger.warning("coral_service.get_schema: error — %s", exc)
         return {"tables": [], "error": str(exc)}
+
+
+# ---------------------------------------------------------------------------
+# SQL-returning variants
+# These return (rows, sql_string, source_string) so routes can pass the SQL
+# into RequestMetadata.coral_sql for the frontend SQL reveal panel.
+# ---------------------------------------------------------------------------
+
+def query_resonance_with_sql(
+    channel_id: str = "demo",
+    timeframe_days: int = 30,
+    top_n: int = 20,
+) -> tuple[list[dict[str, Any]], str, str]:
+    """
+    Like query_resonance() but also returns the SQL query and source name.
+    Returns: (rows, sql, source)  e.g. (rows, "SELECT ...", "local_file")
+    """
+    from coral.coral_client import coral_client  # type: ignore[import]
+
+    try:
+        sql = _load_sql("resonance.sql")
+    except FileNotFoundError:
+        sql = (
+            "SELECT y.video_id, y.title, y.topic, y.views, y.watch_pct,\n"
+            "       y.likes, y.comments, y.resonance_score,\n"
+            "       COUNT(d.message_id)   AS discord_msg_count,\n"
+            "       SUM(d.total_reactions) AS community_reactions,\n"
+            "       SUM(s.cta_clicks)     AS cta_clicks\n"
+            "FROM   youtube.videos        y\n"
+            "LEFT JOIN discord.messages   d ON d.video_ref = y.video_id\n"
+            "LEFT JOIN gsheets.engagement_log s ON s.video_id = y.video_id\n"
+            "GROUP BY y.video_id\n"
+            "ORDER BY y.resonance_score DESC\n"
+            f"LIMIT {top_n}"
+        )
+
+    params = {"timeframe_days": timeframe_days, "top_n": top_n, "topic_filter": None}
+    result = _run(coral_client.run_query(sql, params=params))
+
+    rows   = result.data if result.success else []
+    source = result.source   # "coral" | "local_file" | "mock"
+    return rows, sql, source
+
+
+def query_trends_with_sql(
+    channel_id: str = "demo",
+    timeframe_days: int = 90,
+    bucket: str = "week",
+    top_n: int = 10,
+) -> tuple[list[dict[str, Any]], str, str]:
+    """Like query_trends() but also returns (rows, sql, source)."""
+    from coral.coral_client import coral_client  # type: ignore[import]
+
+    try:
+        sql = _load_sql("trends.sql")
+    except FileNotFoundError:
+        sql = (
+            "SELECT y.topic,\n"
+            "       COUNT(y.video_id)         AS video_count,\n"
+            "       AVG(y.resonance_score)    AS avg_resonance,\n"
+            "       SUM(y.views)              AS total_views,\n"
+            "       COUNT(d.message_id)       AS total_discord_msgs\n"
+            "FROM   youtube.videos            y\n"
+            "LEFT JOIN discord.messages       d ON d.video_ref = y.video_id\n"
+            "GROUP BY y.topic\n"
+            "ORDER BY avg_resonance DESC\n"
+            f"LIMIT {top_n}"
+        )
+
+    params = {"timeframe_days": timeframe_days, "bucket": bucket, "top_n": top_n, "topic_filter": None}
+    result = _run(coral_client.run_query(sql, params=params))
+
+    rows   = result.data if result.success else []
+    source = result.source
+    return rows, sql, source
+
+
+def query_underperformers_with_sql(
+    channel_id: str = "demo",
+    timeframe_days: int = 30,
+    watch_pct_threshold: float = 40.0,
+    top_n: int = 10,
+) -> tuple[list[dict[str, Any]], str, str]:
+    """Like query_underperformers() but also returns (rows, sql, source)."""
+    from coral.coral_client import coral_client  # type: ignore[import]
+
+    try:
+        sql = _load_sql("underperformers.sql")
+    except FileNotFoundError:
+        sql = (
+            "SELECT y.video_id, y.title, y.topic, y.views,\n"
+            "       y.watch_pct, y.resonance_score,\n"
+            "       COUNT(d.message_id) AS discord_msg_count,\n"
+            "       CASE\n"
+            f"         WHEN y.watch_pct < {watch_pct_threshold} THEN 'low_retention'\n"
+            "         WHEN COUNT(d.message_id) < 3            THEN 'no_community_buzz'\n"
+            "         ELSE 'weak_engagement'\n"
+            "       END AS diagnosis\n"
+            "FROM   youtube.videos      y\n"
+            "LEFT JOIN discord.messages d ON d.video_ref = y.video_id\n"
+            "WHERE  y.resonance_score < 55\n"
+            "GROUP BY y.video_id\n"
+            "ORDER BY y.resonance_score ASC\n"
+            f"LIMIT {top_n}"
+        )
+
+    params = {
+        "timeframe_days": timeframe_days,
+        "watch_pct_threshold": watch_pct_threshold,
+        "top_n": top_n,
+    }
+    result = _run(coral_client.run_query(sql, params=params))
+
+    rows   = result.data if result.success else []
+    source = result.source
+    return rows, sql, source
+
+
+def query_engagement_with_sql(
+    channel_id: str = "demo",
+    timeframe_days: int = 30,
+) -> tuple[list[dict[str, Any]], str, str]:
+    """
+    The master 3-source JOIN — all three platforms in one query.
+    Returns (rows, sql, source).  This is the hero query for the SQL reveal panel.
+    """
+    from coral.coral_client import coral_client  # type: ignore[import]
+
+    try:
+        sql = _load_sql("engagement.sql")
+    except FileNotFoundError:
+        sql = (
+            "-- CreatorPulse · Master Cross-Source JOIN\n"
+            "-- Joins YouTube analytics, Discord community signals,\n"
+            "-- and Google Sheets engagement data in a single query.\n"
+            "SELECT\n"
+            "    y.video_id,\n"
+            "    y.title,\n"
+            "    y.topic,\n"
+            "    y.views,\n"
+            "    y.watch_pct,\n"
+            "    y.resonance_score,\n"
+            "    COUNT(d.message_id)        AS discord_msg_count,\n"
+            "    SUM(d.total_reactions)     AS community_reactions,\n"
+            "    AVG(d.reply_count)         AS avg_reply_depth,\n"
+            "    SUM(s.cta_clicks)          AS cta_clicks,\n"
+            "    SUM(s.email_signups)       AS email_signups,\n"
+            "    SUM(s.affiliate_clicks)    AS affiliate_clicks\n"
+            "FROM   youtube.videos          y\n"
+            "LEFT JOIN discord.messages     d ON d.video_ref  = y.video_id\n"
+            "LEFT JOIN gsheets.engagement_log s ON s.video_id = y.video_id\n"
+            "GROUP BY y.video_id, y.title, y.topic, y.views, y.watch_pct, y.resonance_score\n"
+            "ORDER BY y.resonance_score DESC"
+        )
+
+    params = {"timeframe_days": timeframe_days}
+    result = _run(coral_client.run_query(sql, params=params))
+
+    rows   = result.data if result.success else []
+    source = result.source
+    return rows, sql, source

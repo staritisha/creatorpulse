@@ -1,0 +1,52 @@
+name: youtube
+version: 0.1.0
+dsl_version: 3
+backend: file
+
+test_queries:
+  - SELECT * FROM youtube.videos LIMIT 1
+
+tables:
+  - name: videos
+    description: YouTube video performance and analytics data
+    format: jsonl
+    source:
+      location: file:///Users/ritishajadhao/Desktop/building/CreatorPulse/backend/app/data/coral_sources
+      glob: "youtube_videos.jsonl"
+    columns:
+      - name: video_id
+        type: Utf8
+      - name: title
+        type: Utf8
+      - name: published_at
+        type: Utf8
+      - name: topic
+        type: Utf8
+      - name: views
+        type: Int64
+      - name: watch_time_minutes
+        type: Float64
+      - name: watch_pct
+        type: Float64
+      - name: likes
+        type: Int64
+      - name: dislikes
+        type: Int64
+      - name: comments
+        type: Int64
+      - name: shares
+        type: Int64
+      - name: avg_view_duration_sec
+        type: Int64
+      - name: ctr_percent
+        type: Float64
+      - name: impressions
+        type: Int64
+      - name: cards_ctr
+        type: Float64
+      - name: end_screen_ctr
+        type: Float64
+      - name: revenue_usd
+        type: Float64
+      - name: resonance_score
+        type: Float64

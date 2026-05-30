@@ -1,0 +1,48 @@
+{
+  "server": {
+    "id": "guild_demo_001",
+    "name": "TechWithAlex Community",
+    "member_count": 6840,
+    "online_count": 312,
+    "channels": ["general", "video-discussion", "projects", "ai-tools", "resources", "off-topic"]
+  },
+  "messages": [
+    {"message_id": "msg_001", "channel": "video-discussion", "video_ref": "vid_005", "author": "devuser_kai", "content": "The Claude API workflow video was a game changer for me. Automated 3 hours of my week already.", "timestamp": "2025-05-23T09:14:00Z", "reactions": {"🔥": 28, "👍": 14, "🤯": 9}, "sentiment": "positive", "reply_count": 7},
+    {"message_id": "msg_002", "channel": "video-discussion", "video_ref": "vid_005", "author": "mldev_priya", "content": "Question: does this work with the new claude-sonnet-4-6 model or is it still on Opus? Asking because latency matters for my use case.", "timestamp": "2025-05-23T09:31:00Z", "reactions": {"❓": 4, "👀": 6}, "sentiment": "neutral", "reply_count": 11},
+    {"message_id": "msg_003", "channel": "ai-tools", "video_ref": "vid_009", "author": "builderr_sam", "content": "Watched the AI tools comparison twice. The section on context window handling is underrated — nobody talks about that.", "timestamp": "2025-05-22T16:45:00Z", "reactions": {"💯": 19, "👍": 22}, "sentiment": "positive", "reply_count": 5},
+    {"message_id": "msg_004", "channel": "video-discussion", "video_ref": "vid_001", "author": "coder_yash", "content": "The agent demo video has me rethinking my whole dev setup. Shipping this weekend.", "timestamp": "2025-05-21T20:12:00Z", "reactions": {"🚀": 31, "💪": 18, "🔥": 12}, "sentiment": "positive", "reply_count": 9},
+    {"message_id": "msg_005", "channel": "general", "video_ref": null, "author": "newbie_nina", "content": "Just found this channel, binged 6 videos today. This is hands down the clearest Python + AI content on YouTube.", "timestamp": "2025-05-21T11:03:00Z", "reactions": {"❤️": 41, "🙌": 27}, "sentiment": "positive", "reply_count": 4},
+    {"message_id": "msg_006", "channel": "video-discussion", "video_ref": "vid_006", "author": "sre_jonas", "content": "Honest feedback: the Kubernetes video felt rushed. The last 15 minutes were way too dense. Would love a part 2 that slows down on the service mesh stuff.", "timestamp": "2025-05-20T18:22:00Z", "reactions": {"👍": 17, "💯": 8}, "sentiment": "negative", "reply_count": 12},
+    {"message_id": "msg_007", "channel": "video-discussion", "video_ref": "vid_006", "author": "devops_ada", "content": "Agree with @sre_jonas — I had to pause every 30 seconds. The Docker video was perfect pacing, this one wasn't.", "timestamp": "2025-05-20T18:51:00Z", "reactions": {"👍": 13}, "sentiment": "negative", "reply_count": 3},
+    {"message_id": "msg_008", "channel": "ai-tools", "video_ref": "vid_012", "author": "llm_explorer_raj", "content": "LLM fine-tuning vs RAG breakdown was exactly what my team needed before our architecture meeting. Shared it with 4 engineers.", "timestamp": "2025-05-19T10:40:00Z", "reactions": {"🙏": 22, "⭐": 15}, "sentiment": "positive", "reply_count": 6},
+    {"message_id": "msg_009", "channel": "general", "video_ref": null, "author": "creator_lena", "content": "Suggestion: would love a video on streaming APIs and SSE. Saw you use it in one of the demo clips but never explained it.", "timestamp": "2025-05-19T14:17:00Z", "reactions": {"👍": 38, "💡": 24, "+1": 19}, "sentiment": "positive", "reply_count": 8},
+    {"message_id": "msg_010", "channel": "video-discussion", "video_ref": "vid_007", "author": "rag_builder_felix", "content": "Built the knowledge base while the video was playing. Took 67 minutes, first try. Excellent tutorial structure.", "timestamp": "2025-05-18T20:08:00Z", "reactions": {"🎉": 29, "🔥": 21, "👏": 18}, "sentiment": "positive", "reply_count": 14},
+    {"message_id": "msg_011", "channel": "video-discussion", "video_ref": "vid_010", "author": "pg_dba_marco", "content": "The Postgres tuning video glossed over partial indexes which are arguably more impactful than the ones you did cover. Hope you go deeper next time.", "timestamp": "2025-05-18T12:33:00Z", "reactions": {"👍": 9, "💡": 5}, "sentiment": "negative", "reply_count": 7},
+    {"message_id": "msg_012", "channel": "projects", "video_ref": "vid_001", "author": "indie_dev_chris", "content": "Shipped my first AI coding agent using the patterns from vid_001. It caught 2 bugs I missed in code review. Wild.", "timestamp": "2025-05-17T09:55:00Z", "reactions": {"🚀": 44, "💯": 33, "🤖": 21}, "sentiment": "positive", "reply_count": 18},
+    {"message_id": "msg_013", "channel": "ai-tools", "video_ref": "vid_014", "author": "api_shopper_zoe", "content": "OpenAI vs Anthropic comparison — finally an honest one that doesn't feel sponsored. Bookmarked.", "timestamp": "2025-05-16T15:41:00Z", "reactions": {"👍": 35, "💯": 28}, "sentiment": "positive", "reply_count": 11},
+    {"message_id": "msg_014", "channel": "general", "video_ref": null, "author": "sub_2weeks_omar", "content": "Subscribed 2 weeks ago, already learned more practical stuff than 6 months of other channels. The mock-mode pattern you showed is brilliant.", "timestamp": "2025-05-16T08:20:00Z", "reactions": {"❤️": 36, "🙌": 24}, "sentiment": "positive", "reply_count": 2},
+    {"message_id": "msg_015", "channel": "video-discussion", "video_ref": "vid_013", "author": "git_gripe_anna", "content": "Git strategies video... I mean it's fine but this topic has been covered to death. Would rather see more original content like the AI agent stuff.", "timestamp": "2025-05-15T17:09:00Z", "reactions": {"👍": 21, "💯": 12}, "sentiment": "negative", "reply_count": 9},
+    {"message_id": "msg_016", "channel": "general", "video_ref": null, "author": "trending_now_dex", "content": "Watching the YouTube algorithm blow up on the AI agent video rn. It's getting recommended everywhere. Congrats!", "timestamp": "2025-05-21T08:02:00Z", "reactions": {"🔥": 52, "📈": 34}, "sentiment": "positive", "reply_count": 6},
+    {"message_id": "msg_017", "channel": "ai-tools", "video_ref": null, "author": "ml_curious_tia", "content": "Topic request: vector databases comparison — Pinecone vs Weaviate vs Chroma. Every resource on this is outdated.", "timestamp": "2025-05-20T19:30:00Z", "reactions": {"👍": 49, "💡": 38, "+1": 22}, "sentiment": "positive", "reply_count": 15},
+    {"message_id": "msg_018", "channel": "video-discussion", "video_ref": "vid_003", "author": "fastapi_fan_lori", "content": "FastAPI vs Django comparison hit different. The dependency injection section alone was worth the watch time.", "timestamp": "2025-05-14T10:22:00Z", "reactions": {"💯": 24, "👍": 18}, "sentiment": "positive", "reply_count": 8},
+    {"message_id": "msg_019", "channel": "general", "video_ref": null, "author": "long_time_watcher_ben", "content": "Been here since 400 subs. Quality hasn't dropped once. The community grew but the tutorials stayed precise. Rare.", "timestamp": "2025-05-13T21:40:00Z", "reactions": {"❤️": 67, "🙌": 45, "🫡": 31}, "sentiment": "positive", "reply_count": 5},
+    {"message_id": "msg_020", "channel": "video-discussion", "video_ref": "vid_002", "author": "async_beginner_maya", "content": "The asyncio video is the only one that finally made event loops click for me. Watched it 3 times. Would love a follow-up on asyncio + FastAPI together.", "timestamp": "2025-05-13T16:05:00Z", "reactions": {"🙏": 33, "💡": 27}, "sentiment": "positive", "reply_count": 12},
+    {"message_id": "msg_021", "channel": "video-discussion", "video_ref": "vid_009", "author": "tool_skeptic_derek", "content": "Good video but felt like Copilot got less fair coverage than the others. Still useful overall.", "timestamp": "2025-05-12T14:20:00Z", "reactions": {"🤔": 8, "👍": 6}, "sentiment": "negative", "reply_count": 7},
+    {"message_id": "msg_022", "channel": "projects", "video_ref": "vid_011", "author": "fullstack_riri", "content": "Built the React + FastAPI dashboard from vid_011 for our startup. We're using it in production now. Thank you!", "timestamp": "2025-05-11T09:48:00Z", "reactions": {"🎉": 38, "🚀": 29, "🔥": 22}, "sentiment": "positive", "reply_count": 16},
+    {"message_id": "msg_023", "channel": "ai-tools", "video_ref": null, "author": "multimodal_max", "content": "Request: cover multimodal AI — vision + text pipelines. It's the gap nobody's filling well on YouTube right now.", "timestamp": "2025-05-10T13:15:00Z", "reactions": {"👍": 41, "+1": 29, "💡": 22}, "sentiment": "positive", "reply_count": 11},
+    {"message_id": "msg_024", "channel": "general", "video_ref": "vid_004", "author": "docker_newbie_grace", "content": "Docker in 30 minutes made my brain hurt a little but in a good way. Finally get volumes.", "timestamp": "2025-05-09T18:30:00Z", "reactions": {"😅": 19, "💪": 17}, "sentiment": "positive", "reply_count": 4},
+    {"message_id": "msg_025", "channel": "video-discussion", "video_ref": "vid_008", "author": "stdlib_fan_tom", "content": "Five Python libraries list — you missed `orjson` and `rich`. Both are incredible. Otherwise solid picks.", "timestamp": "2025-05-08T11:25:00Z", "reactions": {"💡": 14, "👍": 11}, "sentiment": "neutral", "reply_count": 9}
+  ],
+  "community_stats": {
+    "period": "last_30_days",
+    "total_messages": 1842,
+    "active_members": 428,
+    "avg_daily_messages": 61,
+    "positive_sentiment_pct": 72.4,
+    "negative_sentiment_pct": 14.1,
+    "neutral_sentiment_pct": 13.5,
+    "top_topics": ["AI", "Python", "Tutorial", "DevOps"],
+    "peak_hour_utc": 15,
+    "most_active_channel": "video-discussion"
+  }
+}

@@ -1,0 +1,36 @@
+name: gsheets
+version: 0.1.0
+dsl_version: 3
+backend: file
+
+test_queries:
+  - SELECT * FROM gsheets.engagement_log LIMIT 1
+
+tables:
+  - name: engagement_log
+    description: Google Sheets engagement tracking — CTA clicks, signups, affiliate data
+    format: jsonl
+    source:
+      location: file:///Users/ritishajadhao/Desktop/building/CreatorPulse/backend/app/data/coral_sources/
+      glob: "sheets_engagement.jsonl"
+    columns:
+      - name: date
+        type: Utf8
+      - name: video_id
+        type: Utf8
+      - name: source
+        type: Utf8
+      - name: cta_clicks
+        type: Int64
+      - name: link_clicks
+        type: Int64
+      - name: email_signups
+        type: Int64
+      - name: merch_clicks
+        type: Int64
+      - name: affiliate_clicks
+        type: Int64
+      - name: poll_responses
+        type: Int64
+      - name: notes
+        type: Utf8

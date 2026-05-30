@@ -1,0 +1,34 @@
+name: discord
+version: 0.1.0
+dsl_version: 3
+backend: file
+
+test_queries:
+  - SELECT * FROM discord.messages LIMIT 1
+
+tables:
+  - name: messages
+    description: Discord community messages and sentiment data
+    format: jsonl
+    source:
+      location: file:///Users/ritishajadhao/Desktop/building/CreatorPulse/backend/app/data/coral_sources/
+      glob: "discord_messages.jsonl"
+    columns:
+      - name: message_id
+        type: Utf8
+      - name: channel
+        type: Utf8
+      - name: video_ref
+        type: Utf8
+      - name: author
+        type: Utf8
+      - name: content
+        type: Utf8
+      - name: timestamp
+        type: Utf8
+      - name: sentiment
+        type: Utf8
+      - name: reply_count
+        type: Int64
+      - name: total_reactions
+        type: Int64

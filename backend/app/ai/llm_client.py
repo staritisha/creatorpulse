@@ -40,8 +40,9 @@ except ImportError:
 # Constants
 # ---------------------------------------------------------------------------
 
-DEFAULT_MODEL:       str   = "claude-opus-4-5"
-FALLBACK_MODEL:      str   = "claude-haiku-4-5"
+# Change line ~43:
+DEFAULT_MODEL: str = settings.llm_model  # was "claude-opus-4-5"
+FALLBACK_MODEL: str = "claude-haiku-4-5"
 MAX_TOKENS:          int   = 1500
 CONTEXT_MAX_TOKENS:  int   = 3000    # max chars for analytics context block
 TIMEOUT_SECONDS:     int   = 20

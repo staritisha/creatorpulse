@@ -151,40 +151,78 @@ _MOCK_PLATFORM_DATA: dict[str, Any] = {
 # Data fetchers with fallback (Feature 17: Health Awareness)
 # ---------------------------------------------------------------------------
 
-def _fetch_resonance_rows(channel_id: str, mock_mode: bool) -> list[dict[str, Any]]:
+def _fetch_resonance_rows(
+    channel_id: str, mock_mode: bool
+) -> tuple[list[dict[str, Any]], str, str]:
+    """Returns (rows, sql, source)."""
     if mock_mode:
-        return _MOCK_RESONANCE_ROWS
+        sql = (
+            "SELECT y.video_id, y.title, y.topic, y.views, y.watch_pct,\n"
+            "       y.resonance_score, COUNT(d.message_id) AS discord_msg_count,\n"
+            "       SUM(s.cta_clicks) AS cta_clicks\n"
+            "FROM   youtube.videos y\n"
+            "LEFT JOIN discord.messages d ON d.video_ref = y.video_id\n"
+            "LEFT JOIN gsheets.engagement_log s ON s.video_id = y.video_id\n"
+            "GROUP BY y.video_id ORDER BY y.resonance_score DESC"
+        )
+        return _MOCK_RESONANCE_ROWS, sql, "mock"
     try:
-        from services.coral_service import query_resonance  # type: ignore[import]
-        rows = query_resonance(channel_id)
-        return rows if rows else _MOCK_RESONANCE_ROWS
+        from services.coral_service import query_resonance_with_sql  # type: ignore[import]
+        rows, sql, source = query_resonance_with_sql(channel_id)
+        return (rows if rows else _MOCK_RESONANCE_ROWS), sql, source
     except Exception as exc:
         logger.debug("analytics: resonance fetch failed (%s) — mock", exc)
-        return _MOCK_RESONANCE_ROWS
+        return _MOCK_RESONANCE_ROWS, "", "mock"
 
 
-def _fetch_trend_rows(channel_id: str, mock_mode: bool) -> list[dict[str, Any]]:
+def _fetch_trend_rows(
+    channel_id: str, mock_mode: bool
+) -> tuple[list[dict[str, Any]], str, str]:
+    """Returns (rows, sql, source)."""
     if mock_mode:
-        return _MOCK_TREND_ROWS
+        sql = (
+            "SELECT y.topic, COUNT(y.video_id) AS video_count,\n"
+            "       AVG(y.resonance_score) AS avg_resonance,\n"
+            "       COUNT(d.message_id) AS total_discord_msgs\n"
+            "FROM   youtube.videos y\n"
+            "LEFT JOIN discord.messages d ON d.video_ref = y.video_id\n"
+            "GROUP BY y.topic ORDER BY avg_resonance DESC"
+        )
+        return _MOCK_TREND_ROWS, sql, "mock"
     try:
-        from services.coral_service import query_trends  # type: ignore[import]
-        rows = query_trends(channel_id)
-        return rows if rows else _MOCK_TREND_ROWS
+        from services.coral_service import query_trends_with_sql  # type: ignore[import]
+        rows, sql, source = query_trends_with_sql(channel_id)
+        return (rows if rows else _MOCK_TREND_ROWS), sql, source
     except Exception as exc:
         logger.debug("analytics: trend fetch failed (%s) — mock", exc)
-        return _MOCK_TREND_ROWS
+        return _MOCK_TREND_ROWS, "", "mock"
 
 
-def _fetch_underperformer_rows(channel_id: str, mock_mode: bool) -> list[dict[str, Any]]:
+def _fetch_underperformer_rows(
+    channel_id: str, mock_mode: bool
+) -> tuple[list[dict[str, Any]], str, str]:
+    """Returns (rows, sql, source)."""
+    _fallback = [r for r in _MOCK_RESONANCE_ROWS if float(r.get("resonance_score", 100)) < 50]
     if mock_mode:
-        return [r for r in _MOCK_RESONANCE_ROWS if float(r.get("resonance_score", 100)) < 50]
+        sql = (
+            "SELECT y.video_id, y.title, y.watch_pct, y.resonance_score,\n"
+            "       COUNT(d.message_id) AS discord_msg_count,\n"
+            "       CASE WHEN y.watch_pct < 40 THEN 'low_retention'\n"
+            "            WHEN COUNT(d.message_id) < 3 THEN 'no_community_buzz'\n"
+            "            ELSE 'weak_engagement' END AS diagnosis\n"
+            "FROM   youtube.videos y\n"
+            "LEFT JOIN discord.messages d ON d.video_ref = y.video_id\n"
+            "WHERE  y.resonance_score < 55\n"
+            "GROUP BY y.video_id ORDER BY y.resonance_score ASC"
+        )
+        return _fallback, sql, "mock"
     try:
-        from services.coral_service import query_underperformers  # type: ignore[import]
-        rows = query_underperformers(channel_id)
-        return rows if rows else [r for r in _MOCK_RESONANCE_ROWS if float(r.get("resonance_score", 100)) < 50]
+        from services.coral_service import query_underperformers_with_sql  # type: ignore[import]
+        rows, sql, source = query_underperformers_with_sql(channel_id)
+        return (rows if rows else _fallback), sql, source
     except Exception as exc:
         logger.debug("analytics: underperformer fetch failed (%s) — mock", exc)
-        return [r for r in _MOCK_RESONANCE_ROWS if float(r.get("resonance_score", 100)) < 50]
+        return _fallback, "", "mock"
 
 
 def _compute_health(rows: list[dict[str, Any]], trend_rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -223,8 +261,8 @@ async def get_overview(
         logger.debug("analytics/overview: cache hit")
         return APIResponse.ok(data=cached, message="Analytics overview (cached)", metadata={"from_cache": True})
 
-    res_rows   = _fetch_resonance_rows(channel_id, mock_mode)
-    trend_rows = _fetch_trend_rows(channel_id, mock_mode)
+    res_rows,   res_sql,   res_src   = _fetch_resonance_rows(channel_id, mock_mode)
+    trend_rows, trend_sql, trend_src = _fetch_trend_rows(channel_id, mock_mode)
     health     = _compute_health(res_rows, trend_rows)
     forecast   = _compute_forecast(res_rows, trend_rows)
 
@@ -258,11 +296,13 @@ async def get_overview(
         data     = payload,
         message  = "Analytics overview loaded",
         metadata = RequestMetadata(
-            latency_ms   = latency_ms,
-            data_points  = len(res_rows) + len(trend_rows),
-            from_mock    = mock_mode,
-            coral_sources= ["youtube", "discord", "google_sheets"],
-            channel_id   = channel_id,
+            latency_ms    = latency_ms,
+            data_points   = len(res_rows) + len(trend_rows),
+            from_mock     = mock_mode,
+            coral_sources = ["youtube", "discord", "google_sheets"],
+            coral_sql     = res_sql,
+            coral_source  = res_src,
+            channel_id    = channel_id,
         ).to_dict(),
     )
 
@@ -282,8 +322,8 @@ async def get_resonance(
     Powered by resonance.sql + resonance_score.py.
     (Feature 5: Resonance Analytics Endpoint)
     """
-    t0       = time.time()
-    res_rows = _fetch_resonance_rows(channel_id, mock_mode)
+    t0 = time.time()
+    res_rows, res_sql, res_src = _fetch_resonance_rows(channel_id, mock_mode)
     scores   = [float(r.get("resonance_score", 0)) for r in res_rows]
     channel_avg = sum(scores) / len(scores) if scores else 0.0
 
@@ -299,9 +339,15 @@ async def get_resonance(
         "videos":                insights,
         "data_points":           len(res_rows),
     }
-    logger.info("analytics/resonance: %d videos latency=%dms", len(res_rows), int((time.time() - t0) * 1000))
+    latency_ms = int((time.time() - t0) * 1000)
+    logger.info("analytics/resonance: %d videos latency=%dms", len(res_rows), latency_ms)
     return APIResponse.ok(data=payload, message="Resonance analytics loaded",
-                          metadata={"latency_ms": int((time.time() - t0) * 1000), "from_mock": mock_mode})
+                          metadata=RequestMetadata(
+                              latency_ms=latency_ms, from_mock=mock_mode,
+                              coral_sources=["youtube", "discord", "google_sheets"],
+                              coral_sql=res_sql, coral_source=res_src,
+                              channel_id=channel_id,
+                          ).to_dict())
 
 
 # ===========================================================================
@@ -318,8 +364,8 @@ async def get_trends(
     Rising and declining topic trends from trends.sql.
     (Feature 6: Trend Analytics Endpoint)
     """
-    t0         = time.time()
-    trend_rows = _fetch_trend_rows(channel_id, mock_mode)
+    t0 = time.time()
+    trend_rows, trend_sql, trend_src = _fetch_trend_rows(channel_id, mock_mode)
 
     trends = sorted(
         [TrendModel.from_row(r).model_dump() for r in trend_rows],
@@ -336,9 +382,15 @@ async def get_trends(
         "all":      trends,
         "period_days": days,
     }
-    logger.info("analytics/trends: %d topics latency=%dms", len(trends), int((time.time() - t0) * 1000))
+    latency_ms = int((time.time() - t0) * 1000)
+    logger.info("analytics/trends: %d topics latency=%dms", len(trends), latency_ms)
     return APIResponse.ok(data=payload, message="Topic trends loaded",
-                          metadata={"latency_ms": int((time.time() - t0) * 1000), "from_mock": mock_mode})
+                          metadata=RequestMetadata(
+                              latency_ms=latency_ms, from_mock=mock_mode,
+                              coral_sources=["youtube", "discord", "google_sheets"],
+                              coral_sql=trend_sql, coral_source=trend_src,
+                              channel_id=channel_id,
+                          ).to_dict())
 
 
 # ===========================================================================
@@ -356,8 +408,8 @@ async def get_underperformers(
     Powered by underperformers.sql.
     (Feature 7: Underperformer Analytics Endpoint)
     """
-    t0   = time.time()
-    rows = _fetch_underperformer_rows(channel_id, mock_mode)
+    t0 = time.time()
+    rows, under_sql, under_src = _fetch_underperformer_rows(channel_id, mock_mode)
     rows = [r for r in rows if float(r.get("resonance_score", 100)) < resonance_threshold]
 
     underperformers = [UnderperformerModel.from_row(r).model_dump()
@@ -367,9 +419,15 @@ async def get_underperformers(
         "count":           len(underperformers),
         "threshold":       resonance_threshold,
     }
-    logger.info("analytics/underperformers: %d videos latency=%dms", len(underperformers), int((time.time() - t0) * 1000))
+    latency_ms = int((time.time() - t0) * 1000)
+    logger.info("analytics/underperformers: %d videos latency=%dms", len(underperformers), latency_ms)
     return APIResponse.ok(data=payload, message="Underperformer analysis loaded",
-                          metadata={"latency_ms": int((time.time() - t0) * 1000), "from_mock": mock_mode})
+                          metadata=RequestMetadata(
+                              latency_ms=latency_ms, from_mock=mock_mode,
+                              coral_sources=["youtube", "discord", "google_sheets"],
+                              coral_sql=under_sql, coral_source=under_src,
+                              channel_id=channel_id,
+                          ).to_dict())
 
 
 # ===========================================================================
@@ -385,15 +443,21 @@ async def get_audience_health(
     Audience quality snapshot from audience_health.py.
     (Feature 8: Audience Health Endpoint)
     """
-    t0         = time.time()
-    res_rows   = _fetch_resonance_rows(channel_id, mock_mode)
-    trend_rows = _fetch_trend_rows(channel_id, mock_mode)
+    t0 = time.time()
+    res_rows,   res_sql,   res_src   = _fetch_resonance_rows(channel_id, mock_mode)
+    trend_rows, trend_sql, trend_src = _fetch_trend_rows(channel_id, mock_mode)
     health     = _compute_health(res_rows, trend_rows)
 
     payload = AudienceHealthModel.from_dict(health).model_dump()
-    logger.info("analytics/audience-health: score=%s latency=%dms", health.get("health_score"), int((time.time() - t0) * 1000))
+    latency_ms = int((time.time() - t0) * 1000)
+    logger.info("analytics/audience-health: score=%s latency=%dms", health.get("health_score"), latency_ms)
     return APIResponse.ok(data=payload, message="Audience health loaded",
-                          metadata={"latency_ms": int((time.time() - t0) * 1000), "from_mock": mock_mode})
+                          metadata=RequestMetadata(
+                              latency_ms=latency_ms, from_mock=mock_mode,
+                              coral_sources=["youtube", "discord", "google_sheets"],
+                              coral_sql=res_sql, coral_source=res_src,
+                              channel_id=channel_id,
+                          ).to_dict())
 
 
 # ===========================================================================
@@ -409,9 +473,9 @@ async def get_growth(
     Growth forecast, momentum, and risk from growth_predictor.py.
     (Feature 9: Growth Prediction Endpoint)
     """
-    t0         = time.time()
-    res_rows   = _fetch_resonance_rows(channel_id, mock_mode)
-    trend_rows = _fetch_trend_rows(channel_id, mock_mode)
+    t0 = time.time()
+    res_rows,   res_sql,   res_src   = _fetch_resonance_rows(channel_id, mock_mode)
+    trend_rows, trend_sql, trend_src = _fetch_trend_rows(channel_id, mock_mode)
     forecast   = _compute_forecast(res_rows, trend_rows)
 
     try:
@@ -420,9 +484,15 @@ async def get_growth(
     except Exception:
         enriched = GrowthPredictionModel.from_dict(forecast).model_dump()
 
+    latency_ms = int((time.time() - t0) * 1000)
     logger.info("analytics/growth: momentum=%s forecast=%+.1f%%", forecast.get("momentum_label"), forecast.get("growth_pct_7d", 0))
     return APIResponse.ok(data=enriched, message="Growth forecast loaded",
-                          metadata={"latency_ms": int((time.time() - t0) * 1000), "from_mock": mock_mode})
+                          metadata=RequestMetadata(
+                              latency_ms=latency_ms, from_mock=mock_mode,
+                              coral_sources=["youtube", "discord", "google_sheets"],
+                              coral_sql=res_sql, coral_source=res_src,
+                              channel_id=channel_id,
+                          ).to_dict())
 
 
 # ===========================================================================
@@ -439,8 +509,8 @@ async def get_topics(
     Per-topic performance comparison: resonance, retention, Discord activity.
     (Feature 10: Topic Performance Endpoint + Feature 12: Analytics Filtering)
     """
-    t0       = time.time()
-    res_rows = _fetch_resonance_rows(channel_id, mock_mode)
+    t0 = time.time()
+    res_rows, res_sql, res_src = _fetch_resonance_rows(channel_id, mock_mode)
 
     if topic:
         res_rows = [r for r in res_rows if str(r.get("topic", "")).lower() == topic.lower()]
@@ -469,9 +539,15 @@ async def get_topics(
 
     topics_data.sort(key=lambda t: -t.get("resonance", 0))
     payload = {"topics": topics_data, "count": len(topics_data), "filter_topic": topic}
-    logger.info("analytics/topics: %d topics latency=%dms", len(topics_data), int((time.time() - t0) * 1000))
+    latency_ms = int((time.time() - t0) * 1000)
+    logger.info("analytics/topics: %d topics latency=%dms", len(topics_data), latency_ms)
     return APIResponse.ok(data=payload, message="Topic analytics loaded",
-                          metadata={"latency_ms": int((time.time() - t0) * 1000), "from_mock": mock_mode})
+                          metadata=RequestMetadata(
+                              latency_ms=latency_ms, from_mock=mock_mode,
+                              coral_sources=["youtube", "discord", "google_sheets"],
+                              coral_sql=res_sql, coral_source=res_src,
+                              channel_id=channel_id,
+                          ).to_dict())
 
 
 # ===========================================================================
@@ -518,8 +594,8 @@ async def get_platforms(
     Shows the Coral JOIN transparency to judges.
     (Feature 13: Multi-Platform Breakdown)
     """
-    t0       = time.time()
-    res_rows = _fetch_resonance_rows(channel_id, mock_mode)
+    t0 = time.time()
+    res_rows, res_sql, res_src = _fetch_resonance_rows(channel_id, mock_mode)
 
     # Derive YouTube metrics from resonance rows
     yt = {
@@ -546,7 +622,12 @@ async def get_platforms(
             "resonance.sql, discord channel messages, and Sheets engagement log."
         ),
     }
+    latency_ms = int((time.time() - t0) * 1000)
     logger.info("analytics/platforms: yt_views=%d discord_msgs=%d", yt["views"], discord["total_messages"])
     return APIResponse.ok(data=payload, message="Platform breakdown loaded",
-                          metadata={"latency_ms": int((time.time() - t0) * 1000), "from_mock": mock_mode,
-                                    "coral_sources": ["youtube", "discord", "google_sheets"]})
+                          metadata=RequestMetadata(
+                              latency_ms=latency_ms, from_mock=mock_mode,
+                              coral_sources=["youtube", "discord", "google_sheets"],
+                              coral_sql=res_sql, coral_source=res_src,
+                              channel_id=channel_id,
+                          ).to_dict())

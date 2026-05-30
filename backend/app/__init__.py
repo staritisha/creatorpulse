@@ -1,0 +1,3 @@
+"""
+CreatorPulse backend application package.
+"""

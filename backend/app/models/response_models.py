@@ -662,6 +662,9 @@ class RequestMetadata(BaseModel):
     """
     Attached to API responses as the `metadata` field.
     Gives the frontend timing, source transparency, and debug info.
+
+    coral_sql    — the SQL query that ran (shown in the frontend SQL reveal panel)
+    coral_source — "coral" | "local_file" | "mock"
     """
     latency_ms:    int   = 0
     model_used:    str   = ""
@@ -670,6 +673,8 @@ class RequestMetadata(BaseModel):
     from_mock:     bool  = False
     from_cache:    bool  = False
     coral_sources: list[str] = Field(default_factory=list)
+    coral_sql:     str   = ""   # ← the JOIN query that produced this response
+    coral_source:  str   = ""   # ← "coral" | "local_file" | "mock"
     prompt_version: str  = ""
     channel_id:    str   = ""
 
