@@ -196,11 +196,11 @@ def _register_routes() -> None:
     partially-built project still starts — helpful during incremental development.
     """
     routers: list[tuple[str, str, str]] = [
-        ("routes.health",    "router", "/"),
-        ("routes.chat",      "router", "/api/v1"),
-        ("routes.analytics", "router", "/api/v1"),
-        ("routes.insights",  "router", "/api/v1"),
-        ("routes.sources",   "router", "/api/v1"),
+        ("routes.health",    "router", ""),
+        ("routes.chat",      "router", ""),
+        ("routes.analytics", "router", ""),
+        ("routes.insights",  "router", ""),
+        ("routes.sources",   "router", ""),
     ]
 
     for module_path, attr, prefix in routers:

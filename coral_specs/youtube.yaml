@@ -11,7 +11,7 @@ tables:
     description: YouTube video performance and analytics data
     format: jsonl
     source:
-      location: file:///Users/ritishajadhao/Desktop/building/CreatorPulse/backend/app/data/coral_sources/
+      location: ./backend/app/data/coral_sources/
       glob: "youtube_videos.jsonl"
     columns:
       - name: video_id

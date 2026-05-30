@@ -11,7 +11,7 @@ tables:
     description: Discord community messages and sentiment data
     format: jsonl
     source:
-      location: file:///Users/ritishajadhao/Desktop/building/CreatorPulse/backend/app/data/coral_sources/
+      location: ./backend/app/data/coral_sources/
       glob: "discord_messages.jsonl"
     columns:
       - name: message_id

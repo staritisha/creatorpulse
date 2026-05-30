@@ -237,6 +237,13 @@ async def chat(request: Request, body: ChatRequest) -> APIResponse:
             ir.intent, ir.confidence * 100, latency_ms, ir.from_mock, ir.from_cache,
         )
 
+        # Build the SQL snippet for the frontend "How this works" panel
+        try:
+            from ai.prompts import build_sql_display_snippet  # type: ignore[import]
+            chat_sql = build_sql_display_snippet(ir.intent)
+        except Exception:
+            chat_sql = ""
+
         return APIResponse.ok(
             data     = envelope.model_dump(),
             message  = "Chat response generated",
@@ -248,6 +255,8 @@ async def chat(request: Request, body: ChatRequest) -> APIResponse:
                 from_mock      = ir.from_mock,
                 from_cache     = ir.from_cache,
                 coral_sources  = ["youtube", "discord", "google_sheets"],
+                coral_sql      = chat_sql,
+                coral_source   = "local_file" if not ir.from_mock else "mock",
                 channel_id     = body.channel_id,
             ).to_dict(),
         )
@@ -277,7 +286,11 @@ async def chat(request: Request, body: ChatRequest) -> APIResponse:
         return APIResponse.ok(
             data     = envelope.model_dump(),
             message  = "Fallback response (pipeline unavailable)",
-            metadata = {"fallback": True, "error": str(exc)[:120]},
+            metadata = {
+                "fallback": True, "error": str(exc)[:120],
+                "coral_sql": "", "coral_source": "mock",
+                "coral_sources": ["youtube", "discord", "google_sheets"],
+            },
         )
 
 
@@ -321,8 +334,12 @@ async def chat_stream(request: Request, body: ChatStreamRequest) -> StreamingRes
     _DONE = object()
     queue: asyncio.Queue = asyncio.Queue(maxsize=128)
 
+    # Capture the running event loop NOW (in async context) so the
+    # worker thread can safely schedule coroutines onto it.
+    _loop = asyncio.get_event_loop()
+
     def _run_stream() -> None:
-        """Runs in a thread. Pushes chunks onto the queue."""
+        """Runs in a thread. Pushes chunks onto the queue via the captured loop."""
         try:
             from ai.insight_engine import stream_insight  # type: ignore[import]
             for chunk in stream_insight(
@@ -333,11 +350,7 @@ async def chat_stream(request: Request, body: ChatStreamRequest) -> StreamingRes
                 mock_mode       = body.mock_mode,
                 demo_mode       = body.demo_mode,
             ):
-                # put_nowait is safe here because maxsize=128 gives plenty of buffer;
-                # if the queue fills (very slow client) we block briefly in the thread.
-                asyncio.run_coroutine_threadsafe(
-                    queue.put(chunk), asyncio.get_event_loop()
-                )
+                asyncio.run_coroutine_threadsafe(queue.put(chunk), _loop)
         except Exception as exc:
             logger.error("chat/stream thread: error — %s", exc, exc_info=True)
             fallback = (
@@ -345,23 +358,17 @@ async def chat_stream(request: Request, body: ChatStreamRequest) -> StreamingRes
                 "average by 31 resonance points — this is your strongest growth "
                 "lever right now."
             )
-            asyncio.run_coroutine_threadsafe(
-                queue.put(fallback), asyncio.get_event_loop()
-            )
+            asyncio.run_coroutine_threadsafe(queue.put(fallback), _loop)
         finally:
-            asyncio.run_coroutine_threadsafe(
-                queue.put(_DONE), asyncio.get_event_loop()
-            )
+            asyncio.run_coroutine_threadsafe(queue.put(_DONE), _loop)
 
     async def sse_generator() -> AsyncIterator[str]:
         """
         Async generator — yields SSE frames as tokens arrive.
         FastAPI streams each yield immediately to the client.
         """
-        loop = asyncio.get_event_loop()
-
         # Start the blocking stream in the thread pool
-        loop.run_in_executor(_THREAD_POOL, _run_stream)
+        _loop.run_in_executor(_THREAD_POOL, _run_stream)
 
         while True:
             item = await queue.get()

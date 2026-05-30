@@ -337,10 +337,25 @@ def _run_recommendations(ctx: InsightContext, goal: str) -> InsightContext:
 def _build_claude_context(ctx: InsightContext, intent: str) -> str:
     """
     Assemble a structured markdown context block for Claude.
-    Uses prompts.py formatters where available, with inline fallback.
+    Includes the Coral SQL query that produced this data so Claude can
+    reference it explicitly in its reasoning.
     (Feature 10)
     """
     lines: list[str] = []
+
+    # ── Coral SQL provenance — judges see Claude cite the actual query ─────
+    try:
+        from ai.prompts import build_sql_display_snippet  # type: ignore[import]
+        sql_snippet = build_sql_display_snippet(intent)
+        if sql_snippet:
+            lines.append("## Data Provenance")
+            lines.append("This analysis was produced by the following Coral SQL JOIN")
+            lines.append("across YouTube, Discord, and Google Sheets:\n")
+            lines.append("```sql")
+            lines.append(sql_snippet)
+            lines.append("```\n")
+    except Exception:
+        pass
 
     # ── Analytics header ──────────────────────────────────────────────────
     lines.append("## Creator Analytics Context\n")
